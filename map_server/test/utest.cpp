@@ -43,7 +43,7 @@ TEST(MapServer, loadValidPNG)
 {
   try
   {
-    nav_msgs::GetMap::Response map_resp;
+    nav_msgs::srv::GetMap::Response map_resp;
     double origin[3] = { 0.0, 0.0, 0.0 };
     map_server::loadMapFromFile(&map_resp, g_valid_png_file, g_valid_image_res, false, 0.65, 0.1, origin);
     EXPECT_FLOAT_EQ(map_resp.map.info.resolution, g_valid_image_res);
@@ -64,7 +64,7 @@ TEST(MapServer, loadValidBMP)
 {
   try
   {
-    nav_msgs::GetMap::Response map_resp;
+    nav_msgs::srv::GetMap::Response map_resp;
     double origin[3] = { 0.0, 0.0, 0.0 };
     map_server::loadMapFromFile(&map_resp, g_valid_bmp_file, g_valid_image_res, false, 0.65, 0.1, origin);
     EXPECT_FLOAT_EQ(map_resp.map.info.resolution, g_valid_image_res);
@@ -85,7 +85,7 @@ TEST(MapServer, loadInvalidFile)
 {
   try
   {
-    nav_msgs::GetMap::Response map_resp;
+    nav_msgs::srv::GetMap::Response map_resp;
     double origin[3] = { 0.0, 0.0, 0.0 };
     map_server::loadMapFromFile(&map_resp, "foo", 0.1, false, 0.65, 0.1, origin);
   }

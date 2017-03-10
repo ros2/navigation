@@ -29,13 +29,13 @@
  */
 
 #include <cstdio>
-#include "ros/ros.h"
-#include "ros/console.h"
-#include "nav_msgs/GetMap.h"
-#include "tf2/LinearMath/Matrix3x3.h"
-#include "geometry_msgs/Quaternion.h"
+#include <functional>
+#include <memory>
 
-using namespace std;
+#include "geometry_msgs/msg/quaternion.hpp"
+#include "nav_msgs/srv/get_map.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "tf2/LinearMath/Matrix3x3.h"
 
 /**
  * @brief Map generation node.
@@ -44,27 +44,33 @@ class MapGenerator
 {
 
   public:
-    MapGenerator(const std::string& mapname) : mapname_(mapname), saved_map_(false)
+    MapGenerator(const std::string& mapname, rclcpp::Node::SharedPtr node)
+    : mapname_(mapname), saved_map_(false)
     {
-      ros::NodeHandle n;
-      ROS_INFO("Waiting for the map");
-      map_sub_ = n.subscribe("map", 1, &MapGenerator::mapCallback, this);
+      printf("Waiting for the map\n");
+      rmw_qos_profile_t qos = rmw_qos_profile_default;
+      qos.depth = 1;
+      map_sub_ = node->create_subscription<nav_msgs::msg::OccupancyGrid>(
+        "map",
+        std::bind(&MapGenerator::mapCallback, this, std::placeholders::_1),
+        qos
+      );
     }
 
-    void mapCallback(const nav_msgs::OccupancyGridConstPtr& map)
+    void mapCallback(const std::shared_ptr<nav_msgs::msg::OccupancyGrid> map)
     {
-      ROS_INFO("Received a %d X %d map @ %.3f m/pix",
+      printf("Received a %d X %d map @ %.3f m/pix\n",
                map->info.width,
                map->info.height,
                map->info.resolution);
 
 
       std::string mapdatafile = mapname_ + ".pgm";
-      ROS_INFO("Writing map occupancy data to %s", mapdatafile.c_str());
+      printf("Writing map occupancy data to %s\n", mapdatafile.c_str());
       FILE* out = fopen(mapdatafile.c_str(), "w");
       if (!out)
       {
-        ROS_ERROR("Couldn't save map file to %s", mapdatafile.c_str());
+        fprintf(stderr, "[ERROR] Couldn't save map file to %s\n", mapdatafile.c_str());
         return;
       }
 
@@ -87,7 +93,7 @@ class MapGenerator
 
 
       std::string mapmetadatafile = mapname_ + ".yaml";
-      ROS_INFO("Writing map occupancy data to %s", mapmetadatafile.c_str());
+      printf("Writing map occupancy data to %s\n", mapmetadatafile.c_str());
       FILE* yaml = fopen(mapmetadatafile.c_str(), "w");
 
 
@@ -101,7 +107,7 @@ free_thresh: 0.196
 
        */
 
-      geometry_msgs::Quaternion orientation = map->info.origin.orientation;
+      geometry_msgs::msg::Quaternion orientation = map->info.origin.orientation;
       tf2::Matrix3x3 mat(tf2::Quaternion(
         orientation.x,
         orientation.y,
@@ -111,28 +117,39 @@ free_thresh: 0.196
       double yaw, pitch, roll;
       mat.getEulerYPR(yaw, pitch, roll);
 
-      fprintf(yaml, "image: %s\nresolution: %f\norigin: [%f, %f, %f]\nnegate: 0\noccupied_thresh: 0.65\nfree_thresh: 0.196\n\n",
-              mapdatafile.c_str(), map->info.resolution, map->info.origin.position.x, map->info.origin.position.y, yaw);
+      fprintf(yaml,
+        "image: %s\n"
+        "resolution: %f\n"
+        "origin: [%f, %f, %f]\n"
+        "negate: 0\n"
+        "occupied_thresh: 0.65\n"
+        "free_thresh: 0.196\n\n",
+        mapdatafile.c_str(),
+        map->info.resolution,
+        map->info.origin.position.x,
+        map->info.origin.position.y,
+        yaw);
 
       fclose(yaml);
 
-      ROS_INFO("Done\n");
+      printf("Done\n");
       saved_map_ = true;
     }
 
     std::string mapname_;
-    ros::Subscriber map_sub_;
+    rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
     bool saved_map_;
 
 };
 
 #define USAGE "Usage: \n" \
-              "  map_saver -h\n"\
+              "  map_saver -h\n" \
               "  map_saver [-f <mapname>] [ROS remapping args]"
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "map_saver");
+  rclcpp::init(argc, argv);
+  auto node = std::make_shared<rclcpp::Node>("map_saver");
   std::string mapname = "map";
 
   for(int i=1; i<argc; i++)
@@ -159,10 +176,11 @@ int main(int argc, char** argv)
     }
   }
 
-  MapGenerator mg(mapname);
+  MapGenerator mg(mapname, node);
 
-  while(!mg.saved_map_ && ros::ok())
-    ros::spinOnce();
+  while(!mg.saved_map_ && rclcpp::ok()) {
+    rclcpp::spin_some(node);
+  }
 
   return 0;
 }

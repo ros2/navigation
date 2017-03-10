@@ -30,13 +30,19 @@
 /* Author: Brian Gerkey */
 
 #include <gtest/gtest.h>
-#include <ros/service.h>
-#include <ros/ros.h>
-#include <nav_msgs/GetMap.h>
-#include <nav_msgs/OccupancyGrid.h>
-#include <nav_msgs/MapMetaData.h>
+
+#include <chrono>
+#include <functional>
+#include <memory>
+
+#include <rclcpp/rclcpp.hpp>
+#include <nav_msgs/srv/get_map.hpp>
+#include <nav_msgs/msg/occupancy_grid.hpp>
+#include <nav_msgs/msg/map_meta_data.hpp>
 
 #include "test_constants.h"
+
+using namespace std::chrono_literals;
 
 int g_argc;
 char** g_argv;
@@ -45,32 +51,32 @@ class MapClientTest : public testing::Test
 {
   public:
     // A node is needed to make a service call
-    ros::NodeHandle* n_;
+    rclcpp::Node::SharedPtr n_;
 
     MapClientTest()
+    : n_(nullptr)
     {
-      ros::init(g_argc, g_argv, "map_client_test");
-      n_ = new ros::NodeHandle();
+      n_.reset(new rclcpp::Node("map_client_test"));
       got_map_ = false;
       got_map_metadata_ = false;
     }
 
     ~MapClientTest()
     {
-      delete n_;
+      n_.reset();
     }
 
     bool got_map_;
-    boost::shared_ptr<nav_msgs::OccupancyGrid const> map_;
-    void mapCallback(const boost::shared_ptr<nav_msgs::OccupancyGrid const>& map)
+    std::shared_ptr<nav_msgs::msg::OccupancyGrid const> map_;
+    void mapCallback(const std::shared_ptr<nav_msgs::msg::OccupancyGrid const> map)
     {
       map_ = map;
       got_map_ = true;
     }
 
     bool got_map_metadata_;
-    boost::shared_ptr<nav_msgs::MapMetaData const> map_metadata_;
-    void mapMetaDataCallback(const boost::shared_ptr<nav_msgs::MapMetaData const>& map_metadata)
+    std::shared_ptr<nav_msgs::msg::MapMetaData const> map_metadata_;
+    void mapMetaDataCallback(const std::shared_ptr<nav_msgs::msg::MapMetaData const> map_metadata)
     {
       map_metadata_ = map_metadata;
       got_map_metadata_ = true;
@@ -80,10 +86,18 @@ class MapClientTest : public testing::Test
 /* Try to retrieve the map via service, and compare to ground truth */
 TEST_F(MapClientTest, call_service)
 {
-  nav_msgs::GetMap::Request  req;
-  nav_msgs::GetMap::Response resp;
-  ASSERT_TRUE(ros::service::waitForService("static_map", 5000));
-  ASSERT_TRUE(ros::service::call("static_map", req, resp));
+  auto req = std::make_shared<nav_msgs::srv::GetMap::Request>();
+  nav_msgs::srv::GetMap::Response resp;
+  rclcpp::Client<nav_msgs::srv::GetMap>::SharedPtr client =
+    n_->create_client<nav_msgs::srv::GetMap>("static_map");
+
+  ASSERT_TRUE(client->wait_for_service(5s));
+
+  auto result = client->async_send_request(req);
+  auto ret = rclcpp::spin_until_future_complete(n_, result, 5s);  // Wait for the result.
+  ASSERT_EQ(ret, rclcpp::executor::FutureReturnCode::SUCCESS);
+  resp = *result.get().get();
+
   ASSERT_FLOAT_EQ(resp.map.info.resolution, g_valid_image_res);
   ASSERT_EQ(resp.map.info.width, g_valid_image_width);
   ASSERT_EQ(resp.map.info.height, g_valid_image_height);
@@ -95,15 +109,21 @@ TEST_F(MapClientTest, call_service)
 /* Try to retrieve the map via topic, and compare to ground truth */
 TEST_F(MapClientTest, subscribe_topic)
 {
-  ros::Subscriber sub = n_->subscribe<nav_msgs::OccupancyGrid>("map", 1, boost::bind(&MapClientTest::mapCallback, this, _1));
+  rmw_qos_profile_t qos = rmw_qos_profile_default;
+  qos.depth = 1;
+  qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
+  rclcpp::SubscriptionBase::SharedPtr sub = n_->create_subscription<nav_msgs::msg::OccupancyGrid>(
+    "map",
+    std::bind(&MapClientTest::mapCallback, this, std::placeholders::_1),
+    qos);
 
   // Try a few times, because the server may not be up yet.
   int i=20;
   while(!got_map_ && i > 0)
   {
-    ros::spinOnce();
-    ros::Duration d = ros::Duration().fromSec(0.25);
-    d.sleep();
+    rclcpp::executors::SingleThreadedExecutor executor;
+    executor.spin_node_once(n_, 1ms);
+    rclcpp::sleep_for(250ms);
     i--;
   }
   ASSERT_TRUE(got_map_);
@@ -118,15 +138,22 @@ TEST_F(MapClientTest, subscribe_topic)
 /* Try to retrieve the metadata via topic, and compare to ground truth */
 TEST_F(MapClientTest, subscribe_topic_metadata)
 {
-  ros::Subscriber sub = n_->subscribe<nav_msgs::MapMetaData>("map_metadata", 1, boost::bind(&MapClientTest::mapMetaDataCallback, this, _1));
+  rmw_qos_profile_t qos = rmw_qos_profile_default;
+  qos.depth = 1;
+  qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
+  rclcpp::Subscription<nav_msgs::msg::MapMetaData>::SharedPtr sub =
+    n_->create_subscription<nav_msgs::msg::MapMetaData>(
+      "map_metadata",
+      std::bind(&MapClientTest::mapMetaDataCallback, this, std::placeholders::_1),
+      qos);
 
   // Try a few times, because the server may not be up yet.
   int i=20;
   while(!got_map_metadata_ && i > 0)
   {
-    ros::spinOnce();
-    ros::Duration d = ros::Duration().fromSec(0.25);
-    d.sleep();
+    rclcpp::executors::SingleThreadedExecutor executor;
+    executor.spin_node_once(n_, 1ms);
+    rclcpp::sleep_for(250ms);
     i--;
   }
   ASSERT_TRUE(got_map_metadata_);
@@ -141,6 +168,7 @@ int main(int argc, char **argv)
 
   g_argc = argc;
   g_argv = argv;
+  rclcpp::init(g_argc, g_argv);
 
   return RUN_ALL_TESTS();
 }

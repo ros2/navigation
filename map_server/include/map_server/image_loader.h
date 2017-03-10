@@ -33,7 +33,7 @@
  * Author: Brian Gerkey
  */
 
-#include "nav_msgs/GetMap.h"
+#include "nav_msgs/srv/get_map.hpp"
 
 /** Map mode
  *  Default: TRINARY -
@@ -68,7 +68,7 @@ namespace map_server
  * @param mode Map mode
  * @throws std::runtime_error If the image file can't be loaded
  * */
-void loadMapFromFile(nav_msgs::GetMap::Response* resp,
+void loadMapFromFile(nav_msgs::srv::GetMap::Response* resp,
                      const char* fname, double res, bool negate,
                      double occ_th, double free_th, double* origin,
                      MapMode mode=TRINARY);
