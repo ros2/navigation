@@ -1,10 +1,10 @@
 /*
  * Copyright (c) 2008, Willow Garage, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -13,7 +13,7 @@
  *     * Neither the name of the Willow Garage, Inc. nor the names of its
  *       contributors may be used to endorse or promote products derived from
  *       this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -35,7 +35,7 @@
 #include "test_constants.h"
 
 /* Try to load a valid PNG file.  Succeeds if no exception is thrown, and if
- * the loaded image matches the known dimensions and content of the file. 
+ * the loaded image matches the known dimensions and content of the file.
  *
  * This test can fail on OS X, due to an apparent limitation of the
  * underlying SDL_Image library. */
@@ -43,7 +43,7 @@ TEST(MapServer, loadValidPNG)
 {
   try
   {
-    nav_msgs::GetMap::Response map_resp;
+    nav_msgs::srv::GetMap::Response map_resp;
     double origin[3] = { 0.0, 0.0, 0.0 };
     map_server::loadMapFromFile(&map_resp, g_valid_png_file, g_valid_image_res, false, 0.65, 0.1, origin);
     EXPECT_FLOAT_EQ(map_resp.map.info.resolution, g_valid_image_res);
@@ -64,7 +64,7 @@ TEST(MapServer, loadValidBMP)
 {
   try
   {
-    nav_msgs::GetMap::Response map_resp;
+    nav_msgs::srv::GetMap::Response map_resp;
     double origin[3] = { 0.0, 0.0, 0.0 };
     map_server::loadMapFromFile(&map_resp, g_valid_bmp_file, g_valid_image_res, false, 0.65, 0.1, origin);
     EXPECT_FLOAT_EQ(map_resp.map.info.resolution, g_valid_image_res);
@@ -85,7 +85,7 @@ TEST(MapServer, loadInvalidFile)
 {
   try
   {
-    nav_msgs::GetMap::Response map_resp;
+    nav_msgs::srv::GetMap::Response map_resp;
     double origin[3] = { 0.0, 0.0, 0.0 };
     map_server::loadMapFromFile(&map_resp, "foo", 0.1, false, 0.65, 0.1, origin);
   }
