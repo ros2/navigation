@@ -46,6 +46,7 @@
 #include <LinearMath/btQuaternion.h>
 
 #include "map_server/image_loader.h"
+#include <tf2/LinearMath/Quaternion.h>
 
 // compute linear index for given map coords
 #define MAP_IDX(sx, i, j) ((sx) * (j) + (i))
@@ -54,7 +55,7 @@ namespace map_server
 {
 
 void
-loadMapFromFile(nav_msgs::GetMap::Response* resp,
+loadMapFromFile(nav_msgs::srv::GetMap::Response* resp,
                 const char* fname, double res, bool negate,
                 double occ_th, double free_th, double* origin,
                 MapMode mode)
@@ -87,9 +88,8 @@ loadMapFromFile(nav_msgs::GetMap::Response* resp,
   resp->map.info.origin.position.x = *(origin);
   resp->map.info.origin.position.y = *(origin+1);
   resp->map.info.origin.position.z = 0.0;
-  btQuaternion q;
-  // setEulerZYX(yaw, pitch, roll)
-  q.setEulerZYX(*(origin+2), 0, 0);
+  tf2::Quaternion q;
+  q.setRPY(0,0, *(origin+2));
   resp->map.info.origin.orientation.x = q.x();
   resp->map.info.origin.orientation.y = q.y();
   resp->map.info.origin.orientation.z = q.z();

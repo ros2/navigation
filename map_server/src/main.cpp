@@ -39,12 +39,15 @@
 #include <stdlib.h>
 #include <libgen.h>
 #include <fstream>
+#include <functional>
+#include <memory>
 
-#include "ros/ros.h"
-#include "ros/console.h"
+#include <rclcpp/rclcpp.hpp>
 #include "map_server/image_loader.h"
-#include "nav_msgs/MapMetaData.h"
+#include "nav_msgs/msg/map_meta_data.hpp"
 #include "yaml-cpp/yaml.h"
+
+#include <rcl/rcl.h>
 
 #ifdef HAVE_YAMLCPP_GT_0_5_0
 // The >> operator disappeared in yaml-cpp 0.5, so this function is
@@ -60,7 +63,7 @@ class MapServer
 {
   public:
     /** Trivial constructor */
-    MapServer(const std::string& fname, double res)
+    MapServer(const std::string& fname, double res, std::shared_ptr<rclcpp::Node> node)
     {
       std::string mapfname = "";
       double origin[3];
@@ -68,15 +71,17 @@ class MapServer
       double occ_th, free_th;
       MapMode mode = TRINARY;
       std::string frame_id;
-      ros::NodeHandle private_nh("~");
-      private_nh.param("frame_id", frame_id, std::string("map"));
+      // TODO(wjwwood): use simpler syntax is rclcpp improvement gets merged
+      if (!node->get_parameter("frame_id", frame_id)) {
+        frame_id = std::string("map");
+      }
       deprecated = (res != 0);
       if (!deprecated) {
         //mapfname = fname + ".pgm";
         //std::ifstream fin((fname + ".yaml").c_str());
         std::ifstream fin(fname.c_str());
         if (fin.fail()) {
-          ROS_ERROR("Map_server could not open %s.", fname.c_str());
+          fprintf(stderr, "Map_server could not open %s.\n", fname.c_str());
           exit(-1);
         }
 #ifdef HAVE_YAMLCPP_GT_0_5_0
@@ -90,25 +95,25 @@ class MapServer
         try {
           doc["resolution"] >> res;
         } catch (YAML::InvalidScalar) {
-          ROS_ERROR("The map does not contain a resolution tag or it is invalid.");
+          fprintf(stderr, "The map does not contain a resolution tag or it is invalid.\n");
           exit(-1);
         }
         try {
           doc["negate"] >> negate;
         } catch (YAML::InvalidScalar) {
-          ROS_ERROR("The map does not contain a negate tag or it is invalid.");
+          fprintf(stderr, "The map does not contain a negate tag or it is invalid.\n");
           exit(-1);
         }
         try {
           doc["occupied_thresh"] >> occ_th;
         } catch (YAML::InvalidScalar) {
-          ROS_ERROR("The map does not contain an occupied_thresh tag or it is invalid.");
+          fprintf(stderr, "The map does not contain an occupied_thresh tag or it is invalid.\n");
           exit(-1);
         }
         try {
           doc["free_thresh"] >> free_th;
         } catch (YAML::InvalidScalar) {
-          ROS_ERROR("The map does not contain a free_thresh tag or it is invalid.");
+          fprintf(stderr, "The map does not contain a free_thresh tag or it is invalid.\n");
           exit(-1);
         }
         try {
@@ -122,11 +127,11 @@ class MapServer
           else if(modeS=="raw")
             mode = RAW;
           else{
-            ROS_ERROR("Invalid mode tag \"%s\".", modeS.c_str());
+            fprintf(stderr, "Invalid mode tag \"%s\".\n", modeS.c_str());
             exit(-1);
           }
         } catch (YAML::Exception) {
-          ROS_DEBUG("The map does not contain a mode tag or it is invalid... assuming Trinary");
+          printf("[DEBUG] The map does not contain a mode tag or it is invalid... assuming Trinary\n");
           mode = TRINARY;
         }
         try {
@@ -134,7 +139,7 @@ class MapServer
           doc["origin"][1] >> origin[1];
           doc["origin"][2] >> origin[2];
         } catch (YAML::InvalidScalar) {
-          ROS_ERROR("The map does not contain an origin tag or it is invalid.");
+          fprintf(stderr, "The map does not contain an origin tag or it is invalid.\n");
           exit(-1);
         }
         try {
@@ -142,7 +147,7 @@ class MapServer
           // TODO: make this path-handling more robust
           if(mapfname.size() == 0)
           {
-            ROS_ERROR("The image tag cannot be an empty string.");
+            fprintf(stderr, "The image tag cannot be an empty string.\n");
             exit(-1);
           }
           if(mapfname[0] != '/')
@@ -153,64 +158,90 @@ class MapServer
             free(fname_copy);
           }
         } catch (YAML::InvalidScalar) {
-          ROS_ERROR("The map does not contain an image tag or it is invalid.");
+          fprintf(stderr, "The map does not contain an image tag or it is invalid.\n");
           exit(-1);
         }
       } else {
-        private_nh.param("negate", negate, 0);
-        private_nh.param("occupied_thresh", occ_th, 0.65);
-        private_nh.param("free_thresh", free_th, 0.196);
+        // TODO(wjwwood): use simpler syntax is rclcpp improvement gets merged
+        if (!node->get_parameter("negate", negate)) {
+          negate = 0;
+        }
+        if (!node->get_parameter("occupied_thresh", occ_th)) {
+          occ_th = 0.65;
+        }
+        if (!node->get_parameter("free_thresh", free_th)) {
+          free_th = 0.196;
+        }
         mapfname = fname;
         origin[0] = origin[1] = origin[2] = 0.0;
       }
 
-      ROS_INFO("Loading map from image \"%s\"", mapfname.c_str());
+      printf("Loading map from image \"%s\"\n", mapfname.c_str());
       map_server::loadMapFromFile(&map_resp_,mapfname.c_str(),res,negate,occ_th,free_th, origin, mode);
-      map_resp_.map.info.map_load_time = ros::Time::now();
+      // TODO(wjwwood): use rclcpp version of Time::now()
+      uint32_t now_sec = 0;
+      uint32_t now_nanosec = 0;
+      {
+        rcl_time_point_value_t now = 0;
+        rcl_ret_t ret = rcl_system_time_now(&now);
+        if (ret != RCL_RET_OK) {
+          fprintf(stderr, "Could not get current time: %s\n", rcl_get_error_string_safe());
+          exit(-1);
+        }
+        now_sec = RCL_NS_TO_S(now);
+        now_nanosec = now % (1000 * 1000 * 1000);
+      }
+      map_resp_.map.info.map_load_time.sec = now_sec;
+      map_resp_.map.info.map_load_time.nanosec = now_nanosec;
       map_resp_.map.header.frame_id = frame_id;
-      map_resp_.map.header.stamp = ros::Time::now();
-      ROS_INFO("Read a %d X %d map @ %.3lf m/cell",
+      map_resp_.map.header.stamp.sec = now_sec;
+      map_resp_.map.header.stamp.nanosec = now_nanosec;
+      printf("Read a %d X %d map @ %.3lf m/cell\n",
                map_resp_.map.info.width,
                map_resp_.map.info.height,
                map_resp_.map.info.resolution);
       meta_data_message_ = map_resp_.map.info;
 
-      service = n.advertiseService("static_map", &MapServer::mapCallback, this);
-      //pub = n.advertise<nav_msgs::MapMetaData>("map_metadata", 1,
+      using namespace std::placeholders;
+      service = node->create_service<nav_msgs::srv::GetMap>(
+        "static_map", std::bind(&MapServer::mapCallback, this, _1, _2));
 
       // Latched publisher for metadata
-      metadata_pub= n.advertise<nav_msgs::MapMetaData>("map_metadata", 1, true);
-      metadata_pub.publish( meta_data_message_ );
+      rmw_qos_profile_t qos = rmw_qos_profile_default;
+      qos.depth = 1;
+      qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
+      metadata_pub = node->create_publisher<nav_msgs::msg::MapMetaData>("map_metadata", qos);
+      metadata_pub->publish(meta_data_message_);
 
       // Latched publisher for data
-      map_pub = n.advertise<nav_msgs::OccupancyGrid>("map", 1, true);
-      map_pub.publish( map_resp_.map );
+      qos = rmw_qos_profile_default;
+      qos.depth = 1;
+      qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
+      map_pub = node->create_publisher<nav_msgs::msg::OccupancyGrid>("map", qos);
+      map_pub->publish(map_resp_.map);
     }
 
-  private:
-    ros::NodeHandle n;
-    ros::Publisher map_pub;
-    ros::Publisher metadata_pub;
-    ros::ServiceServer service;
+  public:
+    rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr map_pub;
+    rclcpp::Publisher<nav_msgs::msg::MapMetaData>::SharedPtr metadata_pub;
+    rclcpp::service::ServiceBase::SharedPtr service;
     bool deprecated;
 
     /** Callback invoked when someone requests our service */
-    bool mapCallback(nav_msgs::GetMap::Request  &req,
-                     nav_msgs::GetMap::Response &res )
+    void mapCallback(const std::shared_ptr<nav_msgs::srv::GetMap::Request> req,
+                     std::shared_ptr<nav_msgs::srv::GetMap::Response> res)
     {
-      // request is empty; we ignore it
+      (void)req;
 
       // = operator is overloaded to make deep copy (tricky!)
-      res = map_resp_;
-      ROS_INFO("Sending map");
-
-      return true;
+      *res.get() = map_resp_;
+      printf("Sending map\n");
     }
 
     /** The map data is cached here, to be sent out to service callers
      */
-    nav_msgs::MapMetaData meta_data_message_;
-    nav_msgs::GetMap::Response map_resp_;
+    nav_msgs::msg::MapMetaData meta_data_message_;
+    nav_msgs::srv::GetMap::Response map_resp_;
 
     /*
     void metadataSubscriptionCallback(const ros::SingleSubscriberPublisher& pub)
@@ -223,29 +254,33 @@ class MapServer
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "map_server", ros::init_options::AnonymousName);
+  rclcpp::init(argc, argv);
+  // TODO(wjwwood): make this an anonymous node name
+  std::shared_ptr<rclcpp::Node> node = std::make_shared<rclcpp::Node>("map_server");
+  // Setup a parameter server for the node so it can have parameters.
+  auto parameter_service = std::make_shared<rclcpp::parameter_service::ParameterService>(node);
+
   if(argc != 3 && argc != 2)
   {
-    ROS_ERROR("%s", USAGE);
+    fprintf(stderr, "%s\n", USAGE);
     exit(-1);
   }
   if (argc != 2) {
-    ROS_WARN("Using deprecated map server interface. Please switch to new interface.");
+    fprintf(stderr, "[WARN] Using deprecated map server interface. Please switch to new interface.\n");
   }
   std::string fname(argv[1]);
   double res = (argc == 2) ? 0.0 : atof(argv[2]);
 
   try
   {
-    MapServer ms(fname, res);
-    ros::spin();
+    MapServer ms(fname, res, node);
+    rclcpp::spin(node);
   }
   catch(std::runtime_error& e)
   {
-    ROS_ERROR("map_server exception: %s", e.what());
+    fprintf(stderr, "map_server exception: %s\n", e.what());
     return -1;
   }
 
   return 0;
 }
-
