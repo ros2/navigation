@@ -71,10 +71,7 @@ class MapServer
       double occ_th, free_th;
       MapMode mode = TRINARY;
       std::string frame_id;
-      // TODO(wjwwood): use simpler syntax is rclcpp improvement gets merged
-      if (!node->get_parameter("frame_id", frame_id)) {
-        frame_id = std::string("map");
-      }
+      node->get_parameter_or("frame_id", frame_id, std::string("map"));
       deprecated = (res != 0);
       if (!deprecated) {
         //mapfname = fname + ".pgm";
@@ -162,16 +159,9 @@ class MapServer
           exit(-1);
         }
       } else {
-        // TODO(wjwwood): use simpler syntax is rclcpp improvement gets merged
-        if (!node->get_parameter("negate", negate)) {
-          negate = 0;
-        }
-        if (!node->get_parameter("occupied_thresh", occ_th)) {
-          occ_th = 0.65;
-        }
-        if (!node->get_parameter("free_thresh", free_th)) {
-          free_th = 0.196;
-        }
+        node->get_parameter_or("negate", negate, 0);
+        node->get_parameter_or("occupied_thresh", occ_th, 0.65);
+        node->get_parameter_or("free_thresh", free_th, 0.196);
         mapfname = fname;
         origin[0] = origin[1] = origin[2] = 0.0;
       }
