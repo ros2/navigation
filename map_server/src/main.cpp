@@ -172,9 +172,9 @@ class MapServer
       uint32_t now_sec = 0;
       uint32_t now_nanosec = 0;
       {
-        rcl_time_point_value_t now = 0;
-        rcl_ret_t ret = rcl_system_time_now(&now);
-        if (ret != RCL_RET_OK) {
+        rcutils_time_point_value_t now = 0;
+        rcl_ret_t ret = rcutils_system_time_now(&now);
+        if (ret != RCUTILS_RET_OK) {
           fprintf(stderr, "Could not get current time: %s\n", rcl_get_error_string_safe());
           exit(-1);
         }
