@@ -70,8 +70,14 @@ class TestBasicLocalization(unittest.TestCase):
         print 'Diff:\t %16.6f %16.6f %16.6f' % (
             abs(self.tf.translation.x - self.target_x), abs(self.tf.translation.y - self.target_y), a_diff)
         self.assertNotEquals(self.tf, None)
-        self.assertTrue(abs(self.tf.translation.x - self.target_x) <= tolerance_d)
-        self.assertTrue(abs(self.tf.translation.y - self.target_y) <= tolerance_d)
+        self.assertTrue(
+            abs(self.tf.translation.x - self.target_x) <= tolerance_d,
+            'Translation error of %16.6f exceeds tolerance of %16.6f' %
+            (abs(self.tf.translation.x - self.target_x), tolerance_d))
+        self.assertTrue(
+            abs(self.tf.translation.y - self.target_y) <= tolerance_d,
+            'Translation error of %16.6f exceeds tolerance of %16.6f' %
+            (abs(self.tf.translation.y - self.target_y), tolerance_d))
         self.assertTrue(a_diff <= tolerance_a)
 
 if __name__ == '__main__':
