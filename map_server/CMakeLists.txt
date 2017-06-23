@@ -82,7 +82,7 @@ if(BUILD_TESTING)
   )
 
   set(MAP_SERVER_EXECUTABLE "$<TARGET_FILE:map_server>")
-  set(MAP_SERVER_TESTMAP_YAML "${CMAKE_CURRENT_SOURCE_DIR}/test/testmap.yaml")
+  set(MAP_SERVER_TESTMAP_YAML "${CMAKE_CURRENT_SOURCE_DIR}/test/map.yaml")
   set(RTEST_EXECUTABLE "$<TARGET_FILE:rtest>")
   configure_file(
     test/rtest.launch.py.in
