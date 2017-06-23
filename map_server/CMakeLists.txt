@@ -84,19 +84,30 @@ if(BUILD_TESTING)
   set(MAP_SERVER_EXECUTABLE "$<TARGET_FILE:map_server>")
   set(MAP_SERVER_TESTMAP_YAML "${CMAKE_CURRENT_SOURCE_DIR}/test/map.yaml")
   set(RTEST_EXECUTABLE "$<TARGET_FILE:rtest>")
-  configure_file(
-    test/rtest.launch.py.in
-    rtest.launch.py.configured
-    @ONLY
-  )
-  file(GENERATE
-    OUTPUT "rtest$<CONFIG>.py"
-    INPUT "${CMAKE_CURRENT_BINARY_DIR}/rtest.launch.py.configured"
-  )
-  ament_add_nose_test(rtest_launch
-    "${CMAKE_CURRENT_BINARY_DIR}/rtest$<CONFIG>.py"
-    TIMEOUT 15
-  )
+
+  find_package(rmw_implementation_cmake REQUIRED)
+
+  macro(testing_targets)
+    configure_file(
+      test/rtest.launch.py.in
+      rtest${target_suffix}.launch.py.configured
+      @ONLY
+    )
+    file(GENERATE
+      OUTPUT "rtest${target_suffix}$<CONFIG>.py"
+      INPUT "${CMAKE_CURRENT_BINARY_DIR}/rtest${target_suffix}.launch.py.configured"
+    )
+    ament_add_nose_test(rtest_launch${target_suffix}
+      "${CMAKE_CURRENT_BINARY_DIR}/rtest${target_suffix}$<CONFIG>.py"
+      ENV
+      RCL_ASSERT_RMW_ID_MATCHES=${rmw_implementation}
+      RMW_IMPLEMENTATION=${rmw_implementation}
+      TIMEOUT 30
+    )
+  endmacro()
+
+  call_for_each_rmw_implementation(testing_targets)
+
 endif()
 
 ament_export_libraries(map_server_image_loader)
