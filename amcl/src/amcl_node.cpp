@@ -20,11 +20,11 @@
 
 /* Author: Brian Gerkey */
 
-#define ROS_INFO printf
-#define ROS_ERROR printf
-#define ROS_FATAL printf
-#define ROS_WARN printf
-#define ROS_DEBUG printf
+#define ROS_INFO RCUTILS_LOG_INFO
+#define ROS_ERROR RCUTILS_LOG_ERROR
+#define ROS_FATAL RCUTILS_LOG_FATAL
+#define ROS_WARN RCUTILS_LOG_WARN
+#define ROS_DEBUG RCUTILS_LOG_DEBUG
 
 #include <algorithm>
 #include <vector>
@@ -46,6 +46,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/time.hpp"
 #include "rcutils/cmdline_parser.h"
+#include "rcutils/logging_macros.h"
 
 // Messages that I need
 #include "sensor_msgs/msg/laser_scan.hpp"
@@ -322,8 +323,10 @@ main(int argc, char** argv)
   setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 
   rclcpp::init(argc, argv);
+  rcl_logging_initialize();
 
   auto node = rclcpp::node::Node::make_shared("amcl");
+  auto parameter_service = std::make_shared<rclcpp::parameter_service::ParameterService>(node);
 
   if (cli_option_exist(argv, argv + argc, "-h")) {
     print_usage();
@@ -491,7 +494,7 @@ AmclNode::AmclNode(std::shared_ptr<rclcpp::Node> node_, bool use_map_topic) :
 					 std::bind(&AmclNode::setMapCallback, this, std::placeholders::_1, std::placeholders::_2));
 
   // laser_scan_sub_ = new message_filters::Subscriber<sensor_msgs::msg::LaserScan>(nh_, scan_topic_, 100);
-  qos = rmw_qos_profile_default;
+  qos = rmw_qos_profile_sensor_data;
   qos.depth = 100;
   laser_scan_sub_ = node->create_subscription<sensor_msgs::msg::LaserScan>(scan_topic_, std::bind(&AmclNode::laserReceived, this, std::placeholders::_1), qos);
   /*
@@ -503,6 +506,7 @@ AmclNode::AmclNode(std::shared_ptr<rclcpp::Node> node_, bool use_map_topic) :
   laser_scan_filter_->registerCallback(std::bind(&AmclNode::laserReceived,
                                                    this, _1));
  */
+  qos = rmw_qos_profile_default;
   qos.depth = 2;
   initial_pose_sub_ = node->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("initialpose", std::bind(&AmclNode::initialPoseReceived, this, std::placeholders::_1), qos);
 
@@ -792,7 +796,7 @@ void AmclNode::savePoseToServer()
       }
     );
   if (!set_parameters_results.successful) {
-    ROS_ERROR("Failed to set parameter: %s\n", set_parameters_results.reason.c_str());
+    ROS_ERROR("Failed to set parameter: %s", set_parameters_results.reason.c_str());
   }
 }
 
@@ -866,7 +870,7 @@ AmclNode::requestMap()
     if (!rclcpp::ok()) {
       return;
     }
-    ROS_INFO("Waiting for map service to appear...\n");
+    ROS_INFO("Waiting for map service to appear...");
   }
 
   rclcpp::rate::Rate r(std::chrono::milliseconds(500));
@@ -907,7 +911,7 @@ AmclNode::handleMapMessage(const nav_msgs::msg::OccupancyGrid& msg)
 {
   std::lock_guard<std::recursive_mutex> cfl(configuration_mutex_);
 
-  ROS_INFO("Received a %d X %d map @ %.3f m/pix\n",
+  ROS_INFO("Received a %d X %d map @ %.3f m/pix",
            msg.info.width,
            msg.info.height,
            msg.info.resolution);
@@ -1172,7 +1176,7 @@ AmclNode::laserReceived(const std::shared_ptr<sensor_msgs::msg::LaserScan> laser
   std::string laser_scan_frame_id = laser_scan->header.frame_id;
   if(frame_to_laser_.find(laser_scan_frame_id) == frame_to_laser_.end())
   {
-    ROS_DEBUG("Setting up laser %d (frame_id=%s)\n", (int)frame_to_laser_.size(), laser_scan_frame_id.c_str());
+    ROS_DEBUG("Setting up laser %d (frame_id=%s)", (int)frame_to_laser_.size(), laser_scan_frame_id.c_str());
     lasers_.push_back(new AMCLLaser(*laser_));
     lasers_update_.push_back(true);
     laser_index = frame_to_laser_.size();
@@ -1364,7 +1368,7 @@ AmclNode::laserReceived(const std::shared_ptr<sensor_msgs::msg::LaserScan> laser
     }
 
     pf_sample_set_t* set = pf_->sets + pf_->current_set;
-    ROS_DEBUG("Num samples: %d\n", set->sample_count);
+    ROS_DEBUG("Num samples: %d", set->sample_count);
 
     // Publish the resulting cloud
     // TODO: set maximum rate for publishing
