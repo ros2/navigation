@@ -102,11 +102,18 @@ endif()
 ament_export_libraries(map_server_image_loader)
 ament_package()
 
+# Install libraries
 install(
-  TARGETS map_server-map_saver map_server map_server_image_loader
+  TARGETS map_server_image_loader
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
+)
+
+# Install executables
+install(
+  TARGETS map_server-map_saver map_server 
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 install(
