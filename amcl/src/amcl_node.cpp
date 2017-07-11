@@ -323,17 +323,17 @@ main(int argc, char** argv)
   setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 
   rclcpp::init(argc, argv);
-  rcl_logging_initialize();
+  rcutils_logging_initialize();
 
   auto node = rclcpp::node::Node::make_shared("amcl");
   auto parameter_service = std::make_shared<rclcpp::parameter_service::ParameterService>(node);
 
-  if (cli_option_exist(argv, argv + argc, "-h")) {
+  if (rcutils_cli_option_exist(argv, argv + argc, "-h")) {
     print_usage();
     return 0;
   }
   bool use_map_topic = false;
-  if (cli_option_exist(argv, argv + argc, "--use-map-topic")) {
+  if (rcutils_cli_option_exist(argv, argv + argc, "--use-map-topic")) {
     use_map_topic = true;
   }
 
