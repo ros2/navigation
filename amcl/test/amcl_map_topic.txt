@@ -1,0 +1,2 @@
+Received a 1287 X 1161 map @ 0.050 m/pix
+Initializing likelihood field model; this can take some time on large maps...Done initializing likelihood field model.

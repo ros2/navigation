@@ -1,0 +1,27 @@
+<launch>
+  <param name="/use_sim_time" value="true" />
+  <node name="playbag" pkg="rosbag" type="play" output="screen"
+      args="--delay=3 -r 0.2 --clock $(arg bag_filename)">
+    <remap from="tf" to="tf_in" />
+    <remap from="/base_scan" to="/scan" />
+  </node>
+
+  <node name="tf_remove_frames" pkg="cartographer_ros"
+      type="tf_remove_frames.py">
+    <remap from="tf_out" to="tf_old" />
+    <rosparam param="remove_frames">
+    - map
+    </rosparam>
+  </node>
+
+  <node pkg="tf" type="tf_remap" name="tf_remapper" output="screen">
+    <rosparam param="mappings">
+      [{old: /odom_combined, new: /odom}]
+    </rosparam>
+  </node>
+
+  <node name="rviz" pkg="rviz" type="rviz" required="true"
+      args="-d $(find cartographer_ros)/configuration_files/demo_2d.rviz" />
+      <node name="map_server" pkg="map_server" type="map_server" required="true"
+    args="/home/dhood/src/cartographer/catkin_ws/office_map.yaml" />
+</launch>

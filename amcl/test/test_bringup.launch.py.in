@@ -1,0 +1,80 @@
+# generated from amcl/test/test_bringup.launch.py.in
+
+import os
+
+from launch import LaunchDescriptor
+from launch.exit_handler import ignore_exit_handler
+from launch.exit_handler import primary_ignore_returncode_exit_handler
+from launch.launcher import DefaultLauncher
+from launch.output_handler import ConsoleOutput
+from launch_testing import create_handler
+
+
+def setup():
+    os.environ['OSPL_VERBOSITY'] = '8'  # 8 = OS_NONE
+
+# Runtime test to check all we can without a rosbag playing
+def test_amcl_bringup():
+    output_handlers = []
+    launch_descriptor = LaunchDescriptor()
+
+    rmw_implementation = '@rmw_implementation@'
+    env = dict(os.environ)
+    env['RMW_IMPLEMENTATION'] = rmw_implementation
+
+    # Launch a process with amcl.
+    # This is the process that gets to decide when to tear the launcher down.
+    # It will exit when the regex for receiving a map is matched.
+    amcl_executable = '@AMCL_EXECUTABLE@'
+    amcl_output_file = '@AMCL_EXPECTED_OUTPUT@'
+    amcl_name = 'amcl'
+    amcl_handler = create_handler(
+        amcl_name, launch_descriptor, amcl_output_file, exit_on_match=True,
+        filtered_rmw_implementation=rmw_implementation)
+    assert amcl_handler, 'Cannot find appropriate handler for %s' % amcl_output_file
+    output_handlers.append(amcl_handler)
+
+    command = [amcl_executable, '--use-map-topic']
+    launch_descriptor.add_process(
+        cmd=command,
+        name=amcl_name,
+        exit_handler=primary_ignore_returncode_exit_handler,
+        output_handlers=[amcl_handler, ConsoleOutput()],
+        env=env,
+    )
+
+    # Launch a process with a map_server.
+    # This process will be exited when the launcher is torn down.
+    map_server_executable = 'map_server'
+    map_server_name = 'map_server'
+    '''
+    map_server_output_file = '@MAP_SERVER_EXPECTED_OUTPUT@'
+    map_server_handler = create_handler(
+        map_server_name, launch_descriptor, map_server_output_file, exit_on_match=False,
+        filtered_rmw_implementation=rmw_implementation)
+    assert map_server_handler, 'Cannot find appropriate handler for %s' % map_server_output_file
+    output_handlers.append(map_server_handler)
+    '''
+
+    command = [map_server_executable, '/home/dhood/src/cartographer/catkin_ws/office_map.yaml']
+    launch_descriptor.add_process(
+        cmd=command,
+        name=map_server_name,
+        #exit_handler=ignore_exit_handler,
+        output_handlers=[ConsoleOutput()],
+        env=env,
+    )
+
+    launcher = DefaultLauncher()
+    launcher.add_launch_descriptor(launch_descriptor)
+    rc = launcher.launch()
+
+    assert rc == 0, \
+        "The launch file failed with exit code '" + str(rc) + "'. "
+
+    # Check that the output received by the handlers is what was expected.
+    for handler in output_handlers:
+        handler.check()
+
+if __name__ == '__main__':
+    test_amcl_bringup()
