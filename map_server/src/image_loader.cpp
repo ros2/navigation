@@ -42,9 +42,6 @@
 // We use SDL_image to load the image from disk
 #include <SDL/SDL_image.h>
 
-// Use Bullet's Quaternion object to create one from Euler angles
-#include <LinearMath/btQuaternion.h>
-
 #include "map_server/image_loader.h"
 #include <tf2/LinearMath/Quaternion.h>
 
