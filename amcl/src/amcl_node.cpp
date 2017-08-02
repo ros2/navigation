@@ -35,10 +35,10 @@
 // Signal handling
 #include <signal.h>
 
-#include "map/map.h"
-#include "pf/pf.h"
-#include "sensors/amcl_odom.h"
-#include "sensors/amcl_laser.h"
+#include "amcl/map/map.h"
+#include "amcl/pf/pf.h"
+#include "amcl/sensors/amcl_odom.h"
+#include "amcl/sensors/amcl_laser.h"
 
 // #include "ros/assert.h"
 
@@ -1073,7 +1073,7 @@ AmclNode::getOdomPose(tf2::Stamped<tf2::Transform>& odom_pose,
         odom_pose_msg, odom_frame_id_, tf2::durationFromSec(3.0));
     tf2::fromMsg(odom_pose_msg, odom_pose);
   }
-  catch(tf2::TransformException e)
+  catch(tf2::TransformException & e)
   {
     ROS_WARN("Failed to compute odom pose, skipping scan (%s)", e.what());
     return false;
@@ -1392,6 +1392,11 @@ AmclNode::laserReceived(const std::shared_ptr<sensor_msgs::msg::LaserScan> laser
 
   if(resampled || force_publication)
   {
+    if (!resampled)
+    {
+	    // re-compute the cluster statistics
+	    pf_cluster_stats(pf_, pf_->sets);
+    }
     // Read out the current hypotheses
     double max_weight = 0.0;
     int max_weight_hyp = -1;
@@ -1499,7 +1504,7 @@ AmclNode::laserReceived(const std::shared_ptr<sensor_msgs::msg::LaserScan> laser
                                  odom_frame_id_, tf2::durationFromSec(3.0));
         tf2::fromMsg(odom_to_map_msg, odom_to_map);
       }
-      catch(tf2::TransformException)
+      catch(tf2::TransformException &)
       {
         ROS_DEBUG("Failed to subtract base to odom transform");
         return;
@@ -1605,7 +1610,7 @@ AmclNode::handleInitialPoseMessage(const geometry_msgs::msg::PoseWithCovarianceS
     geometry_msgs::msg::TransformStamped tx_odom_tmp = tf2_buffer_->lookupTransform(base_frame_id_, tf2_ros::fromMsg(msg.header.stamp), base_frame_id_, tf2::TimePoint(), odom_frame_id_);
     tf2::fromMsg(tx_odom_tmp, tx_odom);
   }
-  catch(tf2::TransformException e)
+  catch(tf2::TransformException & e)
   {
     // If we've never sent a transform, then this is normal, because the
     // global_frame_id_ frame doesn't exist.  We only care about in-time

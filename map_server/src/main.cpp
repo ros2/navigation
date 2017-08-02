@@ -91,25 +91,25 @@ class MapServer
 #endif
         try {
           doc["resolution"] >> res;
-        } catch (YAML::InvalidScalar) {
+        } catch (YAML::InvalidScalar &) {
           fprintf(stderr, "The map does not contain a resolution tag or it is invalid.\n");
           exit(-1);
         }
         try {
           doc["negate"] >> negate;
-        } catch (YAML::InvalidScalar) {
+        } catch (YAML::InvalidScalar &) {
           fprintf(stderr, "The map does not contain a negate tag or it is invalid.\n");
           exit(-1);
         }
         try {
           doc["occupied_thresh"] >> occ_th;
-        } catch (YAML::InvalidScalar) {
+        } catch (YAML::InvalidScalar &) {
           fprintf(stderr, "The map does not contain an occupied_thresh tag or it is invalid.\n");
           exit(-1);
         }
         try {
           doc["free_thresh"] >> free_th;
-        } catch (YAML::InvalidScalar) {
+        } catch (YAML::InvalidScalar &) {
           fprintf(stderr, "The map does not contain a free_thresh tag or it is invalid.\n");
           exit(-1);
         }
@@ -127,7 +127,7 @@ class MapServer
             fprintf(stderr, "Invalid mode tag \"%s\".\n", modeS.c_str());
             exit(-1);
           }
-        } catch (YAML::Exception) {
+        } catch (YAML::Exception &) {
           printf("[DEBUG] The map does not contain a mode tag or it is invalid... assuming Trinary\n");
           mode = TRINARY;
         }
@@ -135,7 +135,7 @@ class MapServer
           doc["origin"][0] >> origin[0];
           doc["origin"][1] >> origin[1];
           doc["origin"][2] >> origin[2];
-        } catch (YAML::InvalidScalar) {
+        } catch (YAML::InvalidScalar &) {
           fprintf(stderr, "The map does not contain an origin tag or it is invalid.\n");
           exit(-1);
         }
@@ -154,7 +154,7 @@ class MapServer
             mapfname = std::string(dirname(fname_copy)) + '/' + mapfname;
             free(fname_copy);
           }
-        } catch (YAML::InvalidScalar) {
+        } catch (YAML::InvalidScalar &) {
           fprintf(stderr, "The map does not contain an image tag or it is invalid.\n");
           exit(-1);
         }
@@ -274,4 +274,3 @@ int main(int argc, char **argv)
 
   return 0;
 }
-
