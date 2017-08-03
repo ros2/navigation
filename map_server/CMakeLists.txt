@@ -45,6 +45,7 @@ add_executable(map_server src/main.cpp)
 ament_target_dependencies(map_server
   "nav_msgs"
   "rclcpp"
+  "rcutils"
 )
 target_include_directories(map_server_image_loader
   PUBLIC ${YAMLCPP_INCLUDE_DIRS}

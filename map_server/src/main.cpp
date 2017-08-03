@@ -43,6 +43,7 @@
 #include <memory>
 
 #include <rclcpp/rclcpp.hpp>
+#include <rcutils/logging_macros.h>
 #include "map_server/image_loader.h"
 #include "nav_msgs/msg/map_meta_data.hpp"
 #include "yaml-cpp/yaml.h"
@@ -78,7 +79,7 @@ class MapServer
         //std::ifstream fin((fname + ".yaml").c_str());
         std::ifstream fin(fname.c_str());
         if (fin.fail()) {
-          fprintf(stderr, "Map_server could not open %s.\n", fname.c_str());
+          RCUTILS_LOG_ERROR("Map_server could not open %s.", fname.c_str())
           exit(-1);
         }
 #ifdef HAVE_YAMLCPP_GT_0_5_0
@@ -92,25 +93,25 @@ class MapServer
         try {
           doc["resolution"] >> res;
         } catch (YAML::InvalidScalar &) {
-          fprintf(stderr, "The map does not contain a resolution tag or it is invalid.\n");
+          RCUTILS_LOG_ERROR("The map does not contain a resolution tag or it is invalid.")
           exit(-1);
         }
         try {
           doc["negate"] >> negate;
         } catch (YAML::InvalidScalar &) {
-          fprintf(stderr, "The map does not contain a negate tag or it is invalid.\n");
+          RCUTILS_LOG_ERROR("The map does not contain a negate tag or it is invalid.")
           exit(-1);
         }
         try {
           doc["occupied_thresh"] >> occ_th;
         } catch (YAML::InvalidScalar &) {
-          fprintf(stderr, "The map does not contain an occupied_thresh tag or it is invalid.\n");
+          RCUTILS_LOG_ERROR("The map does not contain an occupied_thresh tag or it is invalid.")
           exit(-1);
         }
         try {
           doc["free_thresh"] >> free_th;
         } catch (YAML::InvalidScalar &) {
-          fprintf(stderr, "The map does not contain a free_thresh tag or it is invalid.\n");
+          RCUTILS_LOG_ERROR("The map does not contain a free_thresh tag or it is invalid.")
           exit(-1);
         }
         try {
@@ -124,11 +125,11 @@ class MapServer
           else if(modeS=="raw")
             mode = RAW;
           else{
-            fprintf(stderr, "Invalid mode tag \"%s\".\n", modeS.c_str());
+            RCUTILS_LOG_ERROR("Invalid mode tag \"%s\".", modeS.c_str())
             exit(-1);
           }
         } catch (YAML::Exception &) {
-          printf("[DEBUG] The map does not contain a mode tag or it is invalid... assuming Trinary\n");
+          RCUTILS_LOG_DEBUG("The map does not contain a mode tag or it is invalid... assuming Trinary")
           mode = TRINARY;
         }
         try {
@@ -136,7 +137,7 @@ class MapServer
           doc["origin"][1] >> origin[1];
           doc["origin"][2] >> origin[2];
         } catch (YAML::InvalidScalar &) {
-          fprintf(stderr, "The map does not contain an origin tag or it is invalid.\n");
+          RCUTILS_LOG_ERROR("The map does not contain an origin tag or it is invalid.")
           exit(-1);
         }
         try {
@@ -144,7 +145,7 @@ class MapServer
           // TODO: make this path-handling more robust
           if(mapfname.size() == 0)
           {
-            fprintf(stderr, "The image tag cannot be an empty string.\n");
+            RCUTILS_LOG_ERROR("The image tag cannot be an empty string.")
             exit(-1);
           }
           if(mapfname[0] != '/')
@@ -155,7 +156,7 @@ class MapServer
             free(fname_copy);
           }
         } catch (YAML::InvalidScalar &) {
-          fprintf(stderr, "The map does not contain an image tag or it is invalid.\n");
+          RCUTILS_LOG_ERROR("The map does not contain an image tag or it is invalid.")
           exit(-1);
         }
       } else {
@@ -166,7 +167,7 @@ class MapServer
         origin[0] = origin[1] = origin[2] = 0.0;
       }
 
-      printf("Loading map from image \"%s\"\n", mapfname.c_str());
+      RCUTILS_LOG_INFO("Loading map from image \"%s\"", mapfname.c_str())
       map_server::loadMapFromFile(&map_resp_,mapfname.c_str(),res,negate,occ_th,free_th, origin, mode);
       // TODO(wjwwood): use rclcpp version of Time::now()
       uint32_t now_sec = 0;
@@ -175,7 +176,7 @@ class MapServer
         rcutils_time_point_value_t now = 0;
         rcl_ret_t ret = rcutils_system_time_now(&now);
         if (ret != RCUTILS_RET_OK) {
-          fprintf(stderr, "Could not get current time: %s\n", rcl_get_error_string_safe());
+          RCUTILS_LOG_ERROR("Could not get current time: %s", rcl_get_error_string_safe())
           exit(-1);
         }
         now_sec = RCL_NS_TO_S(now);
@@ -186,10 +187,11 @@ class MapServer
       map_resp_.map.header.frame_id = frame_id;
       map_resp_.map.header.stamp.sec = now_sec;
       map_resp_.map.header.stamp.nanosec = now_nanosec;
-      printf("Read a %d X %d map @ %.3lf m/cell\n",
-               map_resp_.map.info.width,
-               map_resp_.map.info.height,
-               map_resp_.map.info.resolution);
+      RCUTILS_LOG_INFO(
+        "Read a %d X %d map @ %.3lf m/cell",
+        map_resp_.map.info.width,
+        map_resp_.map.info.height,
+        map_resp_.map.info.resolution)
       meta_data_message_ = map_resp_.map.info;
 
       using namespace std::placeholders;
@@ -225,7 +227,7 @@ class MapServer
 
       // = operator is overloaded to make deep copy (tricky!)
       *res.get() = map_resp_;
-      printf("Sending map\n");
+      RCUTILS_LOG_INFO("Sending map")
     }
 
     /** The map data is cached here, to be sent out to service callers
@@ -252,11 +254,11 @@ int main(int argc, char **argv)
 
   if(argc != 3 && argc != 2)
   {
-    fprintf(stderr, "%s\n", USAGE);
+    RCUTILS_LOG_ERROR("%s\n", USAGE)
     exit(-1);
   }
   if (argc != 2) {
-    fprintf(stderr, "[WARN] Using deprecated map server interface. Please switch to new interface.\n");
+    RCUTILS_LOG_WARN("Using deprecated map server interface. Please switch to new interface.")
   }
   std::string fname(argv[1]);
   double res = (argc == 2) ? 0.0 : atof(argv[2]);
@@ -268,7 +270,7 @@ int main(int argc, char **argv)
   }
   catch(std::runtime_error& e)
   {
-    fprintf(stderr, "map_server exception: %s\n", e.what());
+    RCUTILS_LOG_ERROR("map_server exception: %s", e.what())
     return -1;
   }
 
