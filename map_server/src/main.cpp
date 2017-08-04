@@ -254,7 +254,7 @@ int main(int argc, char **argv)
 
   if(argc != 3 && argc != 2)
   {
-    RCUTILS_LOG_ERROR("%s\n", USAGE)
+    RCUTILS_LOG_ERROR("%s", USAGE)
     exit(-1);
   }
   if (argc != 2) {
