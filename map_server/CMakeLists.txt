@@ -66,7 +66,7 @@ ament_target_dependencies(map_server-map_saver
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
-  find_package(ament_cmake_nose REQUIRED)
+  find_package(ament_cmake_pytest REQUIRED)
 
   ament_add_gtest(${PROJECT_NAME}_utest test/utest.cpp test/test_constants.cpp)
   target_link_libraries(
@@ -94,7 +94,7 @@ if(BUILD_TESTING)
     OUTPUT "rtest$<CONFIG>.py"
     INPUT "${CMAKE_CURRENT_BINARY_DIR}/rtest.launch.py.configured"
   )
-  ament_add_nose_test(rtest_launch
+  ament_add_pytest_test(rtest_launch
     "${CMAKE_CURRENT_BINARY_DIR}/rtest$<CONFIG>.py"
     TIMEOUT 15
   )
