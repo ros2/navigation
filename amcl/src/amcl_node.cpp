@@ -43,8 +43,10 @@
 // #include "ros/assert.h"
 
 // roscpp
+#include "rclcpp/clock.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/time.hpp"
+#include "rclcpp/time_source.hpp"
 #include "rcutils/cmdline_parser.h"
 #include "rcutils/logging_macros.h"
 
@@ -287,6 +289,9 @@ class AmclNode
     tf2::TimePoint last_laser_received_ts_;
     tf2::Duration laser_check_interval_;
     void checkLaserReceived();
+
+    rclcpp::TimeSource timesource;
+    rclcpp::Clock::SharedPtr clock;
 };
 
 std::vector<std::pair<int,int> > AmclNode::free_space_indices;
@@ -373,12 +378,16 @@ AmclNode::AmclNode(std::shared_ptr<rclcpp::Node> node_, bool use_map_topic) :
         laser_(NULL),
         initial_pose_hyp_(NULL),
         first_map_received_(false),
-        first_reconfigure_call_(true)
+        first_reconfigure_call_(true),
+        timesource(node_)
 {
   std::lock_guard<std::recursive_mutex> l(configuration_mutex_);
   node = node_;
   
-  last_laser_received_ts_ = tf2_ros::fromMsg(rclcpp::Time::now());
+  clock = std::make_shared<rclcpp::Clock>(RCL_ROS_TIME);
+  timesource.attachClock(clock);
+
+  last_laser_received_ts_ = tf2_ros::fromMsg(clock->now());
 
   // Grab params off the param server
 
@@ -845,7 +854,7 @@ void AmclNode::updatePoseFromServer()
 void 
 AmclNode::checkLaserReceived()
 {
-  tf2::Duration d = tf2_ros::fromMsg(rclcpp::Time::now()) - last_laser_received_ts_;
+  tf2::Duration d = tf2_ros::fromMsg(clock->now()) - last_laser_received_ts_;
   if(d > laser_check_interval_)
   {
     ROS_WARN("No laser scan received (and thus no pose updates have been published) for %f seconds.  Verify that data is being published on the %s topic.",
@@ -1165,7 +1174,7 @@ AmclNode::setMapCallback(const std::shared_ptr<nav_msgs::srv::SetMap::Request> r
 void
 AmclNode::laserReceived(const std::shared_ptr<sensor_msgs::msg::LaserScan> laser_scan)
 {
-  last_laser_received_ts_ = tf2_ros::fromMsg(rclcpp::Time::now());
+  last_laser_received_ts_ = tf2_ros::fromMsg(clock->now());
   if( map_ == NULL ) {
     return;
   }
@@ -1374,7 +1383,7 @@ AmclNode::laserReceived(const std::shared_ptr<sensor_msgs::msg::LaserScan> laser
     // TODO: set maximum rate for publishing
     if (!m_force_update) {
       geometry_msgs::msg::PoseArray cloud_msg;
-      cloud_msg.header.stamp = rclcpp::Time::now();
+      cloud_msg.header.stamp = clock->now();
       cloud_msg.header.frame_id = global_frame_id_;
       cloud_msg.poses.resize(set->sample_count);
       for(int i=0;i<set->sample_count;i++)
@@ -1552,7 +1561,7 @@ AmclNode::laserReceived(const std::shared_ptr<sensor_msgs::msg::LaserScan> laser
     }
 
     // Is it time to save our last pose to the param server
-    tf2::TimePoint now = tf2_ros::fromMsg(rclcpp::Time::now());
+    tf2::TimePoint now = tf2_ros::fromMsg(clock->now());
     if((tf2::durationToSec(save_pose_period) > 0.0) &&
        (now - save_pose_last_time) >= save_pose_period)
     {
@@ -1600,7 +1609,7 @@ AmclNode::handleInitialPoseMessage(const geometry_msgs::msg::PoseWithCovarianceS
   tf2::Stamped <tf2::Transform> tx_odom;
   try
   {
-    tf2::TimePoint now = tf2_ros::fromMsg(rclcpp::Time::now());
+    tf2::TimePoint now = tf2_ros::fromMsg(clock->now());
     // wait a little for the latest tf to become available
 
     if (!tf2_buffer_->canTransform(base_frame_id_, tf2_ros::fromMsg(msg.header.stamp), base_frame_id_, now, odom_frame_id_, tf2::durationFromSec(3.0)))
