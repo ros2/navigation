@@ -328,7 +328,6 @@ main(int argc, char** argv)
   setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 
   rclcpp::init(argc, argv);
-  rcutils_logging_initialize();
 
   auto node = rclcpp::node::Node::make_shared("amcl");
   auto parameter_service = std::make_shared<rclcpp::parameter_service::ParameterService>(node);
