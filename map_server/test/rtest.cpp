@@ -88,7 +88,7 @@ TEST_F(MapClientTest, call_service)
 {
   auto req = std::make_shared<nav_msgs::srv::GetMap::Request>();
   nav_msgs::srv::GetMap::Response resp;
-  rclcpp::client::Client<nav_msgs::srv::GetMap>::SharedPtr client =
+  rclcpp::Client<nav_msgs::srv::GetMap>::SharedPtr client =
     n_->create_client<nav_msgs::srv::GetMap>("static_map");
 
   ASSERT_TRUE(client->wait_for_service(5s));

@@ -216,7 +216,7 @@ class MapServer
   public:
     rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr map_pub;
     rclcpp::Publisher<nav_msgs::msg::MapMetaData>::SharedPtr metadata_pub;
-    rclcpp::service::ServiceBase::SharedPtr service;
+    rclcpp::ServiceBase::SharedPtr service;
     bool deprecated;
 
     /** Callback invoked when someone requests our service */
@@ -250,7 +250,7 @@ int main(int argc, char **argv)
   // TODO(wjwwood): make this an anonymous node name
   std::shared_ptr<rclcpp::Node> node = std::make_shared<rclcpp::Node>("map_server");
   // Setup a parameter server for the node so it can have parameters.
-  auto parameter_service = std::make_shared<rclcpp::parameter_service::ParameterService>(node);
+  auto parameter_service = std::make_shared<rclcpp::ParameterService>(node);
 
   if(argc != 3 && argc != 2)
   {
