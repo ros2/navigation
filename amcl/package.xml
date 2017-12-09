@@ -1,6 +1,6 @@
 <package format="2">
     <name>amcl</name>
-    <version>1.14.0</version>
+    <version>3.0.0</version>
     <description>
         <p>
             amcl is a probabilistic localization system for a robot moving in
@@ -16,8 +16,9 @@
     <url>http://wiki.ros.org/amcl</url>
     <author>Brian P. Gerkey</author>
     <author>contradict@gmail.com</author>
-    <maintainer email="davidvlu@gmail.com">David V. Lu!!</maintainer>
-    <maintainer email="mferguson@fetchrobotics.com">Michael Ferguson</maintainer>
+    <author email="davidvlu@gmail.com">David V. Lu!!</author>
+    <author email="mferguson@fetchrobotics.com">Michael Ferguson</author>
+    <maintainer email="dhood@osrfoundation.org">D. Hood</maintainer>
     <license>LGPL</license>
 
     <buildtool_depend>ament_cmake_auto</buildtool_depend>
