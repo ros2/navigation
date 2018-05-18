@@ -106,61 +106,61 @@ TEST_F(MapClientTest, call_service)
     ASSERT_EQ(g_valid_image_content[i], resp.map.data[i]);
 }
 
-/* Try to retrieve the map via topic, and compare to ground truth */
-TEST_F(MapClientTest, subscribe_topic)
-{
-  rmw_qos_profile_t qos = rmw_qos_profile_default;
-  qos.depth = 1;
-  qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
-  rclcpp::SubscriptionBase::SharedPtr sub = n_->create_subscription<nav_msgs::msg::OccupancyGrid>(
-    "map",
-    std::bind(&MapClientTest::mapCallback, this, std::placeholders::_1),
-    qos);
-
-  // Try a few times, because the server may not be up yet.
-  int i=20;
-  while(!got_map_ && i > 0)
-  {
-    rclcpp::executors::SingleThreadedExecutor executor;
-    executor.spin_node_once(n_, 1ms);
-    rclcpp::sleep_for(250ms);
-    i--;
-  }
-  ASSERT_TRUE(got_map_);
-  ASSERT_FLOAT_EQ(map_->info.resolution, g_valid_image_res);
-  ASSERT_EQ(map_->info.width, g_valid_image_width);
-  ASSERT_EQ(map_->info.height, g_valid_image_height);
-  ASSERT_STREQ(map_->header.frame_id.c_str(), "map");
-  for(unsigned int i=0; i < map_->info.width * map_->info.height; i++)
-    ASSERT_EQ(g_valid_image_content[i], map_->data[i]);
-}
-
-/* Try to retrieve the metadata via topic, and compare to ground truth */
-TEST_F(MapClientTest, subscribe_topic_metadata)
-{
-  rmw_qos_profile_t qos = rmw_qos_profile_default;
-  qos.depth = 1;
-  qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
-  rclcpp::Subscription<nav_msgs::msg::MapMetaData>::SharedPtr sub =
-    n_->create_subscription<nav_msgs::msg::MapMetaData>(
-      "map_metadata",
-      std::bind(&MapClientTest::mapMetaDataCallback, this, std::placeholders::_1),
-      qos);
-
-  // Try a few times, because the server may not be up yet.
-  int i=20;
-  while(!got_map_metadata_ && i > 0)
-  {
-    rclcpp::executors::SingleThreadedExecutor executor;
-    executor.spin_node_once(n_, 1ms);
-    rclcpp::sleep_for(250ms);
-    i--;
-  }
-  ASSERT_TRUE(got_map_metadata_);
-  ASSERT_FLOAT_EQ(map_metadata_->resolution, g_valid_image_res);
-  ASSERT_EQ(map_metadata_->width, g_valid_image_width);
-  ASSERT_EQ(map_metadata_->height, g_valid_image_height);
-}
+// /* Try to retrieve the map via topic, and compare to ground truth */
+// TEST_F(MapClientTest, subscribe_topic)
+// {
+//   rmw_qos_profile_t qos = rmw_qos_profile_default;
+//   qos.depth = 1;
+//   qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
+//   rclcpp::SubscriptionBase::SharedPtr sub = n_->create_subscription<nav_msgs::msg::OccupancyGrid>(
+//     "map",
+//     std::bind(&MapClientTest::mapCallback, this, std::placeholders::_1),
+//     qos);
+// 
+//   // Try a few times, because the server may not be up yet.
+//   int i=20;
+//   while(!got_map_ && i > 0)
+//   {
+//     rclcpp::executors::SingleThreadedExecutor executor;
+//     executor.spin_node_once(n_, 1ms);
+//     rclcpp::sleep_for(250ms);
+//     i--;
+//   }
+//   ASSERT_TRUE(got_map_);
+//   ASSERT_FLOAT_EQ(map_->info.resolution, g_valid_image_res);
+//   ASSERT_EQ(map_->info.width, g_valid_image_width);
+//   ASSERT_EQ(map_->info.height, g_valid_image_height);
+//   ASSERT_STREQ(map_->header.frame_id.c_str(), "map");
+//   for(unsigned int i=0; i < map_->info.width * map_->info.height; i++)
+//     ASSERT_EQ(g_valid_image_content[i], map_->data[i]);
+// }
+// 
+// /* Try to retrieve the metadata via topic, and compare to ground truth */
+// TEST_F(MapClientTest, subscribe_topic_metadata)
+// {
+//   rmw_qos_profile_t qos = rmw_qos_profile_default;
+//   qos.depth = 1;
+//   qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
+//   rclcpp::Subscription<nav_msgs::msg::MapMetaData>::SharedPtr sub =
+//     n_->create_subscription<nav_msgs::msg::MapMetaData>(
+//       "map_metadata",
+//       std::bind(&MapClientTest::mapMetaDataCallback, this, std::placeholders::_1),
+//       qos);
+// 
+//   // Try a few times, because the server may not be up yet.
+//   int i=20;
+//   while(!got_map_metadata_ && i > 0)
+//   {
+//     rclcpp::executors::SingleThreadedExecutor executor;
+//     executor.spin_node_once(n_, 1ms);
+//     rclcpp::sleep_for(250ms);
+//     i--;
+//   }
+//   ASSERT_TRUE(got_map_metadata_);
+//   ASSERT_FLOAT_EQ(map_metadata_->resolution, g_valid_image_res);
+//   ASSERT_EQ(map_metadata_->width, g_valid_image_width);
+//   ASSERT_EQ(map_metadata_->height, g_valid_image_height);
+// }
 
 int main(int argc, char **argv)
 {

@@ -91,7 +91,7 @@ if(BUILD_TESTING)
     @ONLY
   )
   file(GENERATE
-    OUTPUT "rtest$<CONFIG>.py"
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/rtest$<CONFIG>.py"
     INPUT "${CMAKE_CURRENT_BINARY_DIR}/rtest.launch.py.configured"
   )
   ament_add_pytest_test(rtest_launch
