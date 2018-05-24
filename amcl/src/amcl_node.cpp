@@ -147,6 +147,7 @@ class AmclNode
   private:
     tf2_ros::TransformBroadcaster* tfb_;
 
+    tf2_ros::Buffer* tf2_buffer_;
     // Use a child class to get access to tf2::Buffer class inside of tf_
     struct TransformListenerWrapper : public tf::TransformListener
     {
