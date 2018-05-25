@@ -330,7 +330,6 @@ main(int argc, char** argv)
   rclcpp::init(argc, argv);
 
   auto node = rclcpp::Node::make_shared("amcl");
-  auto parameter_service = std::make_shared<rclcpp::ParameterService>(node);
 
   if (rcutils_cli_option_exist(argv, argv + argc, "-h")) {
     print_usage();

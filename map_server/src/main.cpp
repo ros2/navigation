@@ -249,8 +249,6 @@ int main(int argc, char **argv)
   rclcpp::init(argc, argv);
   // TODO(wjwwood): make this an anonymous node name
   std::shared_ptr<rclcpp::Node> node = std::make_shared<rclcpp::Node>("map_server");
-  // Setup a parameter server for the node so it can have parameters.
-  auto parameter_service = std::make_shared<rclcpp::ParameterService>(node);
 
   if(argc != 3 && argc != 2)
   {
