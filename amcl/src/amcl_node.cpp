@@ -791,15 +791,12 @@ void AmclNode::savePoseToServer()
 
   auto set_parameters_results = node->set_parameters_atomically(
       {
-       rclcpp::parameter::ParameterVariant("initial_pose_x", map_pose.getOrigin().x()),
-       rclcpp::parameter::ParameterVariant("initial_pose_y", map_pose.getOrigin().y()),
-       rclcpp::parameter::ParameterVariant("initial_pose_a", yaw),
-       rclcpp::parameter::ParameterVariant("initial_cov_xx",
-                                  last_published_pose.pose.covariance[6*0+0]),
-       rclcpp::parameter::ParameterVariant("initial_cov_yy",
-                                  last_published_pose.pose.covariance[6*1+1]),
-       rclcpp::parameter::ParameterVariant("initial_cov_yy",
-                                  last_published_pose.pose.covariance[6*5+5]),
+       rclcpp::Parameter("initial_pose_x", map_pose.getOrigin().x()),
+       rclcpp::Parameter("initial_pose_y", map_pose.getOrigin().y()),
+       rclcpp::Parameter("initial_pose_a", yaw),
+       rclcpp::Parameter("initial_cov_xx", last_published_pose.pose.covariance[6*0+0]),
+       rclcpp::Parameter("initial_cov_yy", last_published_pose.pose.covariance[6*1+1]),
+       rclcpp::Parameter("initial_cov_yy", last_published_pose.pose.covariance[6*5+5]),
       }
     );
   if (!set_parameters_results.successful) {
