@@ -796,7 +796,7 @@ void AmclNode::savePoseToServer()
        rclcpp::Parameter("initial_pose_a", yaw),
        rclcpp::Parameter("initial_cov_xx", last_published_pose.pose.covariance[6*0+0]),
        rclcpp::Parameter("initial_cov_yy", last_published_pose.pose.covariance[6*1+1]),
-       rclcpp::Parameter("initial_cov_yy", last_published_pose.pose.covariance[6*5+5]),
+       rclcpp::Parameter("initial_cov_aa", last_published_pose.pose.covariance[6*5+5]),
       }
     );
   if (!set_parameters_results.successful) {
