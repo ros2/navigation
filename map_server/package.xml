@@ -1,6 +1,6 @@
 <package format="2">
     <name>map_server</name>
-    <version>3.0.0</version>
+    <version>3.1.0</version>
     <description>
         map_server provides the <tt>map_server</tt> ROS <a href="http://www.ros.org/wiki/Nodes">Node</a>, which offers map data as a ROS <a href="http://www.ros.org/wiki/Services">Service</a>. It also provides the <tt>map_saver</tt> command-line utility, which allows dynamically generated maps to be saved to file.
     </description>
