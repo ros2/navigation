@@ -484,7 +484,7 @@ AmclNode::AmclNode(std::shared_ptr<rclcpp::Node> node_, bool use_map_topic) :
 
   cloud_pub_interval = tf2::durationFromSec(1.0);
   tfb_ = new tf2_ros::TransformBroadcaster(node);
-  tf2_buffer_ = new tf2_ros::Buffer();
+  tf2_buffer_ = new tf2_ros::Buffer(node->get_clock());
   tf2_buffer_->setUsingDedicatedThread(true);
   tfl_ = new tf2_ros::TransformListener(*tf2_buffer_, node, false);
 
